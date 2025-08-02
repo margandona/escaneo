@@ -5,14 +5,30 @@ Cumple requisitos de auditoría ética y uso seguro en entornos controlados.
 import nmap
 import sys
 import socket
+import os
 
 # Validar si Nmap está instalado
 from shutil import which
 
 def check_nmap_installed():
-    if which('nmap') is None:
-        print("[ERROR] Nmap no está instalado o no está en el PATH del sistema.")
-        sys.exit(1)
+    # Verificar si nmap está en el PATH
+    if which('nmap') is not None:
+        return 'nmap'
+    
+    # Si no está en PATH, verificar rutas comunes de Windows
+    common_paths = [
+        r"C:\Program Files (x86)\Nmap\nmap.exe",
+        r"C:\Program Files\Nmap\nmap.exe"
+    ]
+    
+    for path in common_paths:
+        if os.path.exists(path):
+            print(f"[INFO] Nmap encontrado en: {path}")
+            return path
+    
+    print("[ERROR] Nmap no está instalado o no está en el PATH del sistema.")
+    print("[INFO] Instala Nmap desde: https://nmap.org/download.html")
+    sys.exit(1)
 
 # Validar si la subred es accesible
 def check_network_accessible(target_subnet):
@@ -25,9 +41,8 @@ def check_network_accessible(target_subnet):
         sys.exit(1)
 
 # Función principal de escaneo
-
-def scan_subnet(subnet):
-    nm = nmap.PortScanner()
+def scan_subnet(subnet, nmap_path='nmap'):
+    nm = nmap.PortScanner(nmap_search_path=(nmap_path,) if nmap_path != 'nmap' else ())
     print(f"[INFO] Iniciando escaneo en la subred {subnet} (esto puede tardar)...")
     try:
         # -sV: detección de versiones
@@ -63,6 +78,7 @@ if __name__ == "__main__":
         subnet = sys.argv[1]
     else:
         subnet = "192.168.1.0/24"  # Cambia esto según tu entorno
-    check_nmap_installed()
+    
+    nmap_path = check_nmap_installed()
     check_network_accessible(subnet)
-    scan_subnet(subnet)
+    scan_subnet(subnet, nmap_path)
